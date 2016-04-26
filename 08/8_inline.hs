@@ -1,10 +1,11 @@
 import Data.Char
+import Prelude hiding (return, (>>=))
 
-type Parser a = String -> [(a, String)]
+type Parser a = ((->) String) [(a, String)]
 
 --return' :: a -> Parser a
-return' :: a -> (String -> [(a, String)])
-return' v = \inp -> [(v, inp)]
+return :: a -> (String -> [(a, String)])
+return v = \inp -> [(v, inp)]
 
 --failure :: String -> [(a, String)]
 failure :: Parser a
@@ -17,9 +18,9 @@ item = \inp -> case inp of
   (x:xs) -> [(x,xs)]
 
 {--
-  return' 3        "abc" 
-  return' (Just 8) ""
-  return' Nothing  ['a'..'z']
+  return 3        "abc" 
+  return (Just 8) ""
+  return Nothing  ['a'..'z']
 
   failure "This is a test"
   failure "hehehenohe"
@@ -29,27 +30,27 @@ item = \inp -> case inp of
   item []
 --}
 
-
 --parse :: Parser a -> Parser a
 parse :: Parser a -> String -> [(a, String)]
 parse p inp = p inp
 
 {--
-  parse (return' 1)        "abc"
+  parse (return 1)        "abc"
   parse failure            "abc"
   parse item               []
   parse item               "abc"
-  parse (return' (Just 3)) "hohoho"
-  parse (return' Nothing)  "abc"
+  parse (return (Just 3)) "hohoho"
+  parse (return Nothing)  "abc"
 --}
 
-(>>==) :: Parser a -> (a -> Parser b) -> Parser b
-p >>== f = \inp -> case parse p inp of
+(>>=) :: Parser a -> (a -> Parser b) -> Parser b
+p >>= f = \inp -> case parse p inp of
   []         -> []
   [(v, out)] -> parse (f v) out
 
 p :: Parser (Char, Char)
-p = item >>== (\x -> item >>== (\_ -> item >>== (\y -> return' (x,y))))
+p = item >>= (\x -> item >>= (\_ -> item >>= (\y -> return (x,y))))
+
 
 {--
   parse p "abcdef"
@@ -62,13 +63,13 @@ p +++ q = \inp -> case parse p inp of
   [(v,out)] -> [(v,out)]
 
 {--
-  parse (item +++ return' 'd') "abc"
-  parse (failure +++ return' 'd') "abc"
+  parse (item +++ return 'd') "abc"
+  parse (failure +++ return 'd') "abc"
   parse (failure +++ failure) "abc"
 --}
 
 sat :: (Char -> Bool) -> Parser Char
-sat p = item >>== \x -> if p x then return' x else failure
+sat p = item >>= \x -> if p x then return x else failure
 
 digit :: Parser Char
 digit = sat isDigit
@@ -99,8 +100,8 @@ char c = sat (==c)
 --}
 
 string :: String -> Parser String
-string []     = return' []
-string (x:xs) = char x >>== \_ -> string xs >>== \imp -> return' (x:xs)
+string []     = return []
+string (x:xs) = char x >>= \_ -> string xs >>= \imp -> return (x:xs)
 
 {--
   parse (string "abc") "abcdef"
@@ -108,10 +109,10 @@ string (x:xs) = char x >>== \_ -> string xs >>== \imp -> return' (x:xs)
 --}
 
 many :: Parser a -> Parser [a]
-many p = many1 p +++ return' []
+many p = many1 p +++ return []
 
 many1 :: Parser a -> Parser [a]
-many1 p = p >>== \v -> many p >>== \vs -> return' (v:vs)
+many1 p = p >>= \v -> many p >>= \vs -> return (v:vs)
 
 {--
   parse (many digit) "123abc"
