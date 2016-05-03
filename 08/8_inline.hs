@@ -51,6 +51,30 @@ p >>= f = \inp -> case parse p inp of
 p :: Parser (Char, Char)
 p = item >>= (\x -> item >>= (\_ -> item >>= (\y -> return (x,y))))
 
+{--
+  parse p "abcdef"
+  p "abcdef"
+  item >>= (\x -> item >>= (\_ -> item >>= (\y -> return (x,y)))) "abcdef"
+  case parse item "abcdef" of  -- item "abcdef" --> [(a, "bcdef")]
+    [] -> []
+    [(v,out)] -> parse ((\x -> item >>= (\_ -> item >>= (\y -> return (x,y)))) v) out
+  parse ((\x -> item >>= (\_ -> item >>= (\y -> return (x,y)))) 'a') "bcdef"
+  ((\x -> item >>= (\_ -> item >>= (\y -> return (x,y)))) 'a') "bcdef"
+  item >>= (\_ -> item >>= (\y -> return ('a',y))) "bcdef"
+  case parse item "bcdef" of  -- item "bcdef" --> [(b, "cdef")]
+    [] -> []
+    [(v,out)] -> parse ((\_ -> item >>= (\y -> return (a,y))) v) out
+  parse ((\_ -> item >>= (\y -> return (a,y))) 'b') "cdef"
+  ((\_ -> item >>= (\y -> return (a,y))) 'b') "cdef"
+  item >>= (\y -> return ('a',y)) "cdef"
+  case parse item "cdef" of
+    [] -> []
+    [(v,out)] -> parse ((\y -> return (a,y)) v) out
+  parse ((\y -> return ('a','y')) 'c') "def"
+  ((\y -> return ('a',y)) 'c') "def"
+  return ('a','c') "def"
+  [(('a','c'),"def")]
+--}
 
 {--
   parse p "abcdef"
