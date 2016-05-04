@@ -98,6 +98,20 @@ sat p = item >>= \x -> if p x then return x else failure
 digit :: Parser Char
 digit = sat isDigit
 
+{--
+  digit "012345"
+  sat isDigit "012345"
+  (item >>= \x -> if isDigit x then return x else failure) "012345"
+  (\inp -> case parse item inp of
+     [] -> []
+     [(v,out)] -> parse ((\x -> if isDigit x then return x else failure) v) out) "012345"
+  parse ((\x -> if isDigit x then return x else failure) '0') "12345"
+  ((\x -> if isDigit x then return x else failure) '0') "12345"
+  (if isDigit '0' then return '0' else failure) "12345"
+  return '0' "12345"
+  [('0',"12345")]
+--}
+
 lower :: Parser Char
 lower = sat isLower
 
@@ -125,12 +139,66 @@ char c = sat (==c)
 
 string :: String -> Parser String
 string []     = return []
-string (x:xs) = char x >>= \_ -> string xs >>= \imp -> return (x:xs)
+string (x:xs) = char x >>= \_ -> string xs >>= \_ -> return (x:xs)
+
+{--
+  parse (string "abc") "abcdef"
+  (string "abc") "abcdef"
+  (string ('a':"bc")) "abcdef"
+  (char 'a' >>= \_ -> (string "bc" >>= \_ -> return ('a':"bc"))) "abcdef"
+  (\inp -> case parse (char 'a') inp of
+      [] -> []
+      [(v,out)] -> parse ((\_ -> (string "bc" >>= \_ -> return ('a':"bc"))) v) out) "abcdef"
+  parse ((\_ -> (string "bc" >>= \_ -> return ('a':"bc"))) 'a') "bcdef"
+  ((\_ -> (string "bc" >>= \_ -> return ('a':"bc"))) 'a') "bcdef"
+  (string "bc" >>= \_ -> return ('a':"bc")) "bcdef"
+  (string ('b':"c") >>= \_ -> return ('a':"bc")) "bcdef"
+  (char 'b' >>= \_ -> string "c" >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "bcdef"
+  (\inp -> case parse p inp of
+     [] -> []
+     [(v,out)] -> parse ((\_ -> string "c" >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) v) out) "bcdef"
+  parse ((\_ -> string "c" >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'b') "cdef"
+  ((\_ -> string "c" >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'b') "cdef"
+  (string "c" >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "cdef"
+  (string ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "cdef"
+  ((char 'c' >>= \_ -> string [] >>= \_ -> return ('c':[])) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "cdef"
+  (\inp -> case parse (char 'c') inp of
+      [] -> []
+      [(v,out)] -> parse ((\_ -> string [] >>= \_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) v) out) "cdef"
+  parse ((\_ -> string [] >>= \_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'c') "def"
+  ((\_ -> string [] >>= \_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'c') "def"
+  (string [] >>= \_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "def"
+  (return [] >>= \_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "def"
+  (\inp -> case parse (return []) inp of
+      [] -> []
+      [(v,out)] -> parse ((\_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) v) out) "def"
+  parse ((\_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) []) "def"
+  ((\_ -> return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) []) "def"
+  (return ('c':[]) >>= \_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) "def"
+  (\inp -> case parse return "c" inp of
+      [] -> []
+      [(v,out)] -> parse ((\_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) v) out) "def"
+  parse ((\_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'c') "def"
+  ((\_ -> return ('b':"c") >>= \_ -> return ('a':"bc")) 'c') "def"
+  (return ('b':"c") >>= \_ -> return ('a':"bc")) "def"
+  (\inp -> case parse (return "bc") inp of
+      [] -> []
+      [(v,out)] -> parse ((\_ -> return ('a':"bc")) v) out) "def"
+  parse ((\_ -> return ('a':"bc")) "bc") "def"
+  ((\_ -> return ('a':"bc")) "bc") "def"
+  (return ('a':"bc")) "def"
+  [("abc","def")]
+--}
 
 {--
   parse (string "abc") "abcdef"
   parse (string "abc") "ab1234"
 --}
+
+string2 :: String -> Parser String
+string2 [] = return []
+string2 (x:xs) = char x >>= \_ -> string xs >>= \_ -> return "hoge"
+
 
 many :: Parser a -> Parser [a]
 many p = many1 p +++ return []
