@@ -199,7 +199,6 @@ string2 :: String -> Parser String
 string2 [] = return []
 string2 (x:xs) = char x >>= \_ -> string xs >>= \_ -> return "hoge"
 
-
 many :: Parser a -> Parser [a]
 many p = many1 p +++ return []
 
@@ -208,6 +207,147 @@ many1 p = p >>= \v -> many p >>= \vs -> return (v:vs)
 
 {--
   parse (many digit) "123abc"
+  (many digit) "123abc"
+  (many1 digit +++ return []) "123abc"
+  (\inp -> case parse (many1 digit) inp of
+      [] -> parse (return [])
+      [(v,out)] -> [(v,out)]) "123abc"
+  (\inp -> case parse (digit >>= \v -> many digit >>= \vs -> return (v:vs)) inp of
+      [] -> parse (return [])
+      [(v,out)] -> [(v,out)]) "123abc"
+  [("123","abc")]
+--}
+
+{--
+  parse (digit >>= \v -> many digit >>= \vs -> return (v:vs)) "123abc"
+  (digit >>= \v -> many digit >>= \vs -> return (v:vs)) "123abc"
+  (\inp -> case parse digit inp of
+    [] -> []
+    [(v,out)] -> parse ((\v -> many digit >>= \vs -> return (v:vs)) v) out) "123abc"
+  parse ((\v -> many digit >>= \vs -> return (v:vs)) '1') "23abc"
+  ((\v -> many digit >>= \vs -> return (v:vs)) '1') "23abc"
+  (many digit >>= \vs -> return ('1':vs)) "23abc"
+--}
+
+{--
+  (many digit >>= \vs -> return ('1':vs)) "23abc"
+  ((many1 digit +++ return []) >>= \vs -> return ('1':vs)) "23abc"
+  (\inp -> case parse (many1 digit +++ return []) inp of
+      [] -> []
+      [(v,out)] -> parse ((\vs -> return ('1':vs)) v) out) "23abc"
+  (\inp -> case (many1 digit +++ return []) inp of
+      [] -> []
+      [(v,out)] -> parse ((\vs -> return ('1':vs)) v) out) "23abc"
+--}
+
+{--
+  (many1 digit +++ return []) "23abc"
+  (\inp -> case parse (many1 digit) inp of
+      [] -> parse (return []) inp
+      [(v,out)] -> [(v,out)]) "23abc"
+--}
+
+{--
+  parse (many1 digit) "23abc"
+  (many1 digit) "23abc"
+  (digit >>= \v -> many digit >>= \vs -> return (v:vs)) "23abc"
+  (\inp -> case parse digit inp of
+      [] -> []
+      [(v,out)] -> parse ((\v -> many digit >>= \vs -> return (v:vs)) v) out) "23abc"
+  parse ((\v -> many digit >>= \vs -> return (v:vs)) '2') "3abc"
+  ((\v -> many digit >>= \vs -> return (v:vs)) '2') "3abc"
+  (many digit >>= \vs -> return ('2':vs)) "3abc"
+  (many digit >>= \vs -> return ('2':vs)) "3abc"
+  ((many1 digit +++ return []) >>= \vs -> return ('2':vs)) "3abc"
+--}
+
+{--
+  parse (many digit) "123abc"
   parse (many digit) "abcdef"
   parse (many1 digit) "abcdef"
+--}
+
+-- ident ((->) String) [(String,String)]
+ident :: Parser String
+ident = lower >>= \x -> many alphanum >>= \xs -> return (x:xs)
+
+{--
+  (lower >>= \x -> many alphanum >>= \xs -> return (x:xs)) "abc def"
+  (\inp -> case parse lower inp of
+      [] -> []
+      [(v,out)] -> parse ((\x -> many alphanum >>= \xs -> return (x:xs)) v) out) "abc def"
+--}
+
+nat :: Parser Int
+nat = many1 digit >>= \xs -> return (read xs)
+
+space :: Parser ()
+space = many (sat isSpace) >>= \_ -> return ()
+
+space2 :: Parser Int -- count a number of white space
+space2 = many (sat isSpace) >>= \x -> return (length x)
+
+token :: Parser a -> Parser a
+token p = space >>= \_ -> p >>= \v -> space >>= \_ -> return v
+
+token2 :: Parser a -> Parser a
+token2 p = space >>= \_ -> p >>= \v -> return v
+
+identifier :: Parser String
+identifier = token ident
+
+{--
+  parse identifier "    my132  41fa    ;jfilae*:"
+  parse ident "    my132  41fa    ;jfilae*:"
+--}
+
+natural :: Parser Int
+natural = token nat
+
+{--
+  parse natural "    13241fa ;jfilae*:"
+  parse nat "    13241fa ;jfilae*:"
+--}
+
+natural2 :: Parser Int
+natural2 = token2 nat
+
+symbol :: String -> Parser String
+symbol xs = token (string xs)
+
+{--
+  parse (symbol "abc") "  abcdefa;lLIJf@    deftkf "
+--}
+
+-- p.98
+-- Since p is already used in p.93, I use p'.
+p' :: Parser [Int]
+p' = (symbol "[") >>= \_ -> natural >>= \n -> many ((symbol ",") >>= \_ -> natural) >>= \ns -> symbol "]" >>= \_ -> return (n:ns)
+
+{--
+  parse p' " [1, 2, 3] "
+  parse p' " [1, 2, 3,] "
+--}
+
+expr :: Parser Int
+expr = term >>= \t -> (symbol "+" >>= \_ -> expr >>= \e -> return (t + e)) +++ return t
+
+term :: Parser Int
+term = factor >>= \f -> (symbol "*" >>= \_ -> term >>= \t -> return (f * t)) +++ return f
+
+factor :: Parser Int
+factor = (symbol "(" >>= \_ -> expr >>= \e -> (symbol ")") >>= \_ -> return e) +++ natural
+
+eval :: String -> Int
+eval xs = case parse expr xs of
+  [(n,[] )] -> n
+  [(_,out)] -> error ("unused input " ++ out)
+  []        -> error "invalid input"
+
+{--
+  eval "2*3+4"
+  eval "2*(3+4)"
+  eval "2 * (3 + 4)"
+  eval "2*3-4"
+  eval "-1"
 --}
