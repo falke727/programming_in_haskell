@@ -1,3 +1,5 @@
+module Parser where
+
 import Data.Char
 import Control.Applicative hiding (many)
 import Control.Monad
