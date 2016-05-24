@@ -1,7 +1,7 @@
-import Parser
+import Parser hiding (term, factor, expr, eval)
 
 ufloat :: Parser Float
-ufloat = many1 digit >>= \xs -> (symbol ".") >>= \_ -> many1 digit >>= \ys -> return $ read (xs ++ "." ++ ys)
+ufloat = many1 digit >>= \xs -> ((symbol ".") >>= \_ -> many1 digit >>= \ys -> return $ read (xs ++ "." ++ ys)) +++ (return $ read xs)
 
 float :: Parser Float
 float = ((char '-') >>= \_ -> ufloat >>= \f -> return (-f)) +++ ufloat
@@ -15,10 +15,10 @@ floating :: Parser Float
 floating = token float
 
 expr :: Parser Float
-expr = term >>= \t -> (symbol "+" >>= \_ -> expr >>= \e -> return (t+e)) +++ return t
+expr = term >>= \t -> (symbol "+" >>= \_ -> expr >>= \e -> return (t+e)) +++ (symbol "-" >>= \_ -> expr >>= \e -> return (t-e)) +++ return t
 
 term :: Parser Float
-term = factor >>= \f -> (symbol "*" >>= \_ -> term >>= \t -> return (f*t)) +++ return f
+term = factor >>= \f -> (symbol "*" >>= \_ -> term >>= \t -> return (f*t)) +++ (symbol "/" >>= \_ -> term >>= \t -> return (f/t)) +++ return f
 
 factor :: Parser Float
 factor = (symbol "(" >>= \_ -> expr >>= \e -> symbol ")" >>= \_ -> return e) +++ floating

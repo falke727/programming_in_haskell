@@ -1,6 +1,7 @@
 import Parser
 
 -- implement the Parser defined in p.100 
+-- :set +s
 
 expr2 :: Parser Int
 expr2 = (term2 >>= \t -> (symbol "+" >>= \_ -> expr2 >>= \e -> return (t+e))) +++ term2
