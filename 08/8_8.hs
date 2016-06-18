@@ -45,12 +45,13 @@ expr = term >>= \t -> (symbol "+" >>= \_ -> expr >>= \e -> return (t+e))
 
 expr :: Parser Int
 expr = term >>= \t -> (symbol "+" >>= \_ -> expr >>= \e -> return (t+e))
-                      +++ (many (symbol "-" >>= \_ -> term >>= \n -> return n) >>= \ss -> let min = (foldl (-) t ss) in (symbol "+" >>= \_ -> expr >>= \e -> return (min + e)) +++ return min)
+                      +++ (many (symbol "-" >>= \_ -> term >>= \n -> return n) >>= \ss -> let sub = foldl (-) t ss in (symbol "+" >>= \_ -> expr >>= \e -> return (sub + e)) +++ return sub)
                       +++ return t
 
 term :: Parser Int
 term = factor >>= \f -> (symbol "*" >>= \_ -> term >>= \t -> return (f*t))
-                        +++ (many (symbol "/" >>= \_ -> factor >>= \n -> return n) >>= \ss -> return (foldl (div) f ss))
+--                        +++ (many (symbol "/" >>= \_ -> factor >>= \n -> return n) >>= \ss -> return (foldl (div) f ss))
+                        +++ (many (symbol "/" >>= \_ -> factor >>= \n -> return n) >>= \ss -> let dd = foldl (div) f ss in (symbol "*" >>= \_ -> term >>= \t -> return (dd * t)) +++ return dd)
                         +++ return f
 
 factor :: Parser Int
