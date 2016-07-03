@@ -1,5 +1,7 @@
 import System.IO
+import Parser hiding (eval)
 
+-- p.
 echo' :: IO ()
 echo' = getChar >>= \c -> putChar '\n' >>= \_ -> putChar c >>= \_ -> putChar '\n'
 
@@ -21,6 +23,7 @@ strlen' =
   putStr "The string has " >>= \_ -> putStr (show (length xs)) >>= \_ ->
   putStrLn " characters."
 
+-- p.109
 beep :: IO ()
 beep = putStr "\BEL"
 
@@ -88,16 +91,99 @@ process c xs
   | otherwise          = press c xs
 
 quit :: IO ()
-quit = undefined
+quit = goto (1,14)
 
 delete :: String -> IO ()
-delete = undefined
+delete "" = calc ""
+delete xs = calc (init xs)
 
 eval :: String -> IO ()
-eval = undefined
+eval xs = case parse expr xs of
+  [(n,"")] -> calc (show n)
+  _        -> beep >>= \_ -> calc xs
 
 clear :: IO ()
-clear = undefined
+clear = calc ""
 
 press :: Char -> String -> IO ()
-press = undefined
+press c xs = calc (xs ++ [c])
+
+run :: IO ()
+run = cls >>= \_ -> showbox >>= \_ -> clear
+
+-- p.114
+
+width :: Int
+width = 5
+
+height :: Int
+height = 5
+
+{-
+
+(5,5)      (1,5) (2,5) (3,5) (4,5) (5,5)   (1,5)
+            /|\   /|\   /|\   /|\   /|\
+         + ----------------------------- +
+(5,1) <- | (1,1) (2,1) (3,1) (4,1) (5,1) | -> (1,1)
+{5,2} <- | (1,2) (2,2) (3,2) (4,2) (5,2) | -> (1,2)
+{5,3} <- | (1,3) (2,3) (3,3) (4,3) (5,3) | -> (1,3)
+{5,4} <- | (1,4) (2,4) (3,4) (4,4) (5,4) | -> (1,4)
+(5,5) <- | (1,5) (2,5) (3,5) (4,5) (5,5) | -> (1,5)
+         + ----------------------------- +
+            \|/   \|/   \|/   \|/   \|/
+(5,5)      (1,1) (2,5) (3,5) (4,5) (5,5)   (1,1)
+-}
+
+type Board = [Pos]
+
+glider :: Board
+glider = [(4,2), (2,3), (4,3), (3,4), (4,4)]
+
+showcells :: Board -> IO ()
+showcells b = seqn [writeat p "O" | p <- b]
+
+isAlive :: Board -> Pos -> Bool
+isAlive b p = elem p b
+
+isEmpty :: Board -> Pos -> Bool
+isEmpty b p = not (isEmpty b p)
+
+neighbs :: Pos -> [Pos]
+neighbs (x,y) = map wrap [(x-1,y-1), (x,y-1), (x+1,y-1),
+                          (x-1,y), (x+1,y),
+                          (x-1,y+1), (x,y+1), (x+1,y+1)]
+
+-- x mod y = x - y*(floor(x/y))
+wrap :: Pos -> Pos
+wrap (x,y) = (((x-1) `mod` width) + 1,
+              ((y-1) `mod` height) + 1)
+
+liveneighbs :: Board -> Pos -> Int
+liveneighbs b = length . filter (isAlive b) . neighbs
+
+survivors :: Board -> [Pos]
+survivors b = [p | p <- b , elem (liveneighbs b p) [2,3]]
+
+births :: Board -> [Pos]
+{-
+births b = [(x,y) | x <- [1..width],
+                    y <- [1..height],
+                    isEmpty b (x,y),
+                    liveneighbs b (x,y) == 3]
+-}
+births b = [p | p <- rmdups (concat (map neighbs b)),
+                isEmpty b p,
+                liveneighbs b p == 3]
+
+rmdups :: Eq a => [a] -> [a]
+rmdups [] = []
+rmdups (x:xs) = x : rmdups (filter (/= x) xs)
+
+nextgen :: Board -> Board
+nextgen b = survivors b ++ births b
+
+life :: Board -> IO ()
+life b = cls >>= \_ -> showcells b >>= \_ -> wait 5000 >>= \_ -> life (nextgen b)
+
+wait :: Int -> IO ()
+wait n = seqn [return () | _ <- [1..n]]
