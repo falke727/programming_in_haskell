@@ -24,13 +24,32 @@ diffTwo x y
   | abs (x-y) < 2 = True
   | otherwise     = False
 
-getNumberOfNodeInTree :: Tree -> Int
-getNumberOfNodeInTree (Leaf n) = 1
-getNumberOfNodeInTree (Node l n r) = (getNumberOfNodeInTree l) + 1 + (getNumberOfNodeInTree r)
+getNumberOfLeafInTree :: Tree -> Int
+getNumberOfLeafInTree (Leaf n) = 1
+getNumberOfLeafInTree (Node l n r) = (getNumberOfLeafInTree l) + (getNumberOfLeafInTree r)
 
 balanced :: Tree -> Bool
 balanced (Leaf n) = True
-balanced (Node l n r) = diffTwo (getNumberOfNodeInTree l) (getNumberOfNodeInTree r) && balanced l && balanced r
+balanced (Node l n r) = diffTwo (getNumberOfLeafInTree l) (getNumberOfLeafInTree r) && balanced l && balanced r
 
+getLeft :: Tree -> Tree
+getLeft (Node l _ _) = l
+
+getRight :: Tree -> Tree
+getRight (Node _ _ r) = r
+                       
 notBalancedTree :: Tree
-notBalancedTree = Node (Node (Leaf 3) 2 (Node (Leaf 4) 3 (Leaf 4))) 1 (Node (Node (Leaf 4) 3 (Leaf 4)) 2 (Leaf 3))
+notBalancedTree =
+  Node
+   (Node
+    (Node (Node (Leaf 6) 5 (Leaf 6)) 4 (Leaf 5))
+    2
+    (Node (Leaf 4) 3 (Leaf 4)))
+   1
+   (Node
+    (Node
+     (Leaf 4)
+     3
+     (Leaf 4))
+    2
+     (Leaf 3))
