@@ -127,14 +127,15 @@ symbol xs = token (string xs)
 
 ---- ----
 
+-- 論理結合子の結合順位は下記の定義順，¬, ∧, ∨, ⇒, ⇔
 data Prop =
     Const Bool       -- 恒真命題（T），恒偽命題（⊥）
   | Var   Char       -- 論理変数（ p, q, r, ...）
   | Not   Prop       -- ¬
-  | And   Prop Prop  -- ∧
-  | Or    Prop Prop  -- ∨
-  | Imply Prop Prop  -- ⇒
-  | Equiv Prop Prop  -- ⇔
+  | And   Prop Prop  -- ∧　右結合とする（多分どちらでも問題ない）
+  | Or    Prop Prop  -- ∨　右結合とする（多分どちらでも問題ない）
+  | Imply Prop Prop  -- ⇒　右結合
+  | Equiv Prop Prop  -- ⇔　右結合とする（多分どちらでも問題ない）
   deriving (Show)
 
 top :: Prop
@@ -200,27 +201,33 @@ isTautology p = and [eval s p | s <- substs p]
 isSatisfiable :: Prop -> Bool
 isSatisfiable p = or [eval s p | s <- substs p]
 
--- prop ::= prop "||" prop | prop "&&" prop | prop "=>" prop | prop "<=>" prop | '!' prop | '(' prop ')' | atom
--- atom ::= "var p" | "top" | "bot" -- where p is a character
+-- prop0 ::= prop1 ("<=>" prop0 | ε)
+-- prop1 ::= prop2 ("=>"  prop1 | ε)
+-- prop2 ::= prop3 ("||"  prop2 | ε)
+-- prop3 ::= prop4 ("&&"  prop3 | ε)
+-- prop4 ::= '(' prop0 ')' | '!' prop0 | atom
+-- atom  ::= "var A"       | "top"     | "bot" -- where 'A' is the meta variable
+
+prop0 :: Parser Prop
+prop0 = prop1 >>= \p1 -> (symbol "<=>" >>= \_ -> prop0 >>= \p0 -> return (Equiv p1 p0)) +++ return p1
+
+prop1 :: Parser Prop
+prop1 = prop2 >>= \p2 -> (symbol "=>" >>= \_ -> prop1 >>= \p1 -> return (Imply p2 p1)) +++ return p2
+
+prop2 :: Parser Prop
+prop2 = prop3 >>= \p3 -> (symbol "||" >>= \_ -> prop2 >>= \p2 -> return (Or p3 p2)) +++ return p3
+
+prop3 :: Parser Prop
+prop3 = prop4 >>= \p4 -> (symbol "&&" >>= \_ -> prop3 >>= \p3 -> return (And p4 p3)) +++ return p4
+
+prop4 :: Parser Prop
+prop4 = (symbol "(" >>= \_ -> prop0 >>= \p0 -> symbol ")" >>= \_ -> return p0) +++ (symbol "!" >>= \_ -> prop0 >>= \p0 -> return (Not p0)) +++ atom
+
+atom :: Parser Prop
+atom = (symbol "var" >>= \_ -> alphanum >>= \a -> return (Var a)) +++ (symbol "top" >>= \_ -> return (Const True)) +++ (symbol "bot" >>= \_ -> return (Const False))
 
 evalIsTaut :: String -> Bool
-evalIsTaut xs = undefined
-
-{-
-eval xs = case parse expr xs of
-  [(n,[])]  -> n
+evalIsTaut xs = case parse prop0 xs of
+  [(p,[])]  -> isTautology p
   [(_,out)] -> error ("unused input " ++ out)
   []        -> error "invalid input"
--}
-
-{-
-data Prop =
-    Const Bool       -- 恒真命題（T），恒偽命題（⊥）
-  | Var   Char       -- 論理変数（ p, q, r, ...）
-  | Not   Prop       -- ¬
-  | And   Prop Prop  -- ∧
-  | Or    Prop Prop  -- ∨
-  | Imply Prop Prop  -- ⇒
-  | Equiv Prop Prop  -- ⇔
-  deriving (Show)
--}

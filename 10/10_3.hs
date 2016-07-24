@@ -1,3 +1,5 @@
+module 10_3 where
+
 data Tree = Leaf Int | Node Tree Int Tree deriving (Show)
 
 t :: Tree
