@@ -48,5 +48,7 @@ instance Monad Maybe' where
 
 instance Monad List where
   return a = Cons a Nil
---  Cons
+  (Cons a as) >>= f = listConcat (listMap f (Cons a as))
   Nil >>= _ = Nil
+
+-- (Cons 3 (Cons 5 Nil)) >>= (\x -> Cons (x*3) Nil)
