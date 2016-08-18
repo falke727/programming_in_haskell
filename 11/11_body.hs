@@ -229,4 +229,24 @@ results [n] = [(Val n, n) | n > 0]
 results ns = [res | (ls, rs) <- split ns, lx <- results ls, ry <- results rs, res <- combine' lx ry]
 
 combine' :: Result -> Result -> [Result]
-combine' = undefined
+combine' (l,x) (r,y) = [(App o l r, apply o x y) | o <- ops, valid o x y]
+
+solutions' :: [Int] -> Int -> [Expr]
+solutions' ns n = [e | ns' <- choices ns, (e,m) <- results ns', m == n]
+
+valid' :: Op -> Int -> Int -> Bool
+valid' Add x y = x <= y
+valid' Sub x y = x > y
+valid' Mul x y = x /= 1 && y /= 1 && x <= y
+valid' Div x y = y /= 1 && x `mod`y == 0
+
+combine'' :: Result -> Result -> [Result]
+combine'' (l,x) (r,y) = [(App o l r, apply o x y) | o <- ops, valid' o x y]
+
+results' :: [Int] -> [Result]
+results' [] = []
+results' [n] = [(Val n, n) | n > 0]
+results' ns = [res | (ls, rs) <- split ns, lx <- results ls, ry <- results rs, res <- combine'' lx ry]
+
+solutions'' :: [Int] -> Int -> [Expr]
+solutions'' ns n = [e | ns' <- choices ns, (e,m) <- results' ns', m == n]
