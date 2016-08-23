@@ -1,22 +1,15 @@
-repeat' :: a -> [a]
-repeat' x = xs where xs = x:xs
---repeat' x = x:repeat' x
+-- Should fix following functions using the notion of the foldable.
 
-{-
+repeatT :: a -> Tree a
+repeatT x = Node subT x subT
+  where subT = repeatT x
 
-repeat' 5 = 5:xs
-          = 5:(repeat' 5)
-          = 5:5:xs
-          = 5:5:(repeat' 5)
-          .
-          .
-          .
-          = 
+takeT :: Int -> Tree a -> Tree a
+takeT 0 _                   = Leaf
+takeT n Leaf                = Leaf
+takeT n (Node left x right) = Node (takeT (n-1) left) x (takeT (n-1) right)
 
--}
+replicateT :: Int -> a -> Tree a
+replicateT n = (takeT n) . repeatT
 
-
-take' :: Int -> [a] -> [a]
-take' 0 _ = []
-take' (n+1) [] = []
-take' (n+1) (x:xs) = x : (take n xs)
+data Tree a = Leaf | Node (Tree a) a (Tree a) deriving Show
