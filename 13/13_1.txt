@@ -1,0 +1,41 @@
+----------  A.1 ----------
+
+min :: Ord a => a -> a -> a
+min 
+  | x <= y    = x
+  | otherwise = y
+
+max :: Ord a => a -> a -> a
+max
+  | x <= y    = y
+  | otherwise = x
+
+---------- A.3 ----------
+
+toLower :: Char -> Char
+toLower
+  | isUpper c = chr (ord c - ord 'A' + ord 'a')
+  | otherwise = c
+
+toUpper :: Char -> Char
+toUpper c
+  | isLower c = chr (ord c - ord 'a' + ord 'A')
+  | otherwise
+
+---------- A.7 ----------
+
+null :: [a] -> Bool
+null []    = True
+null (_:_) = False
+
+takeWhile :: (a -> Bool) -> [a] -> [a]
+takeWhile _ []     = []
+takeWhile p (x:xs)
+  | p x       = x : takeWhile p xs
+  | otherwise = []
+
+dropWhile :: (a -> Bool) -> [a] -> [a]
+dropWhile _ [] = []
+dropWhile p (x:xs)
+  | p x       = dropWhile p xs
+  | otherwise = x : xs
