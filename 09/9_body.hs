@@ -146,17 +146,18 @@ isAlive :: Board -> Pos -> Bool
 isAlive b p = elem p b
 
 isEmpty :: Board -> Pos -> Bool
-isEmpty b p = not (isEmpty b p)
+isEmpty b p = not (isAlive b p)
 
 neighbs :: Pos -> [Pos]
-neighbs (x,y) = map wrap [(x-1,y-1), (x,y-1), (x+1,y-1),
-                          (x-1,y), (x+1,y),
-                          (x-1,y+1), (x,y+1), (x+1,y+1)]
+neighbs (x,y) = map wrap [(x-1,y-1), (x,y-1),
+                          (x+1,y-1), (x-1,y),
+                          (x+1,y), (x-1,y+1),
+                          (x,y+1), (x+1,y+1)]
 
 -- x mod y = x - y*(floor(x/y))
 wrap :: Pos -> Pos
 wrap (x,y) = (((x-1) `mod` width) + 1,
-              ((y-1) `mod` height) + 1)
+              ((y-1) `mod` height + 1))
 
 liveneighbs :: Board -> Pos -> Int
 liveneighbs b = length . filter (isAlive b) . neighbs
@@ -183,7 +184,7 @@ nextgen :: Board -> Board
 nextgen b = survivors b ++ births b
 
 life :: Board -> IO ()
-life b = cls >>= \_ -> showcells b >>= \_ -> wait 5000 >>= \_ -> life (nextgen b)
+life b = cls >>= \_ -> showcells b >>= \_ -> wait 10 >>= \_ -> life (nextgen b)
 
 wait :: Int -> IO ()
 wait n = seqn [return () | _ <- [1..n]]

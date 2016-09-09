@@ -1,13 +1,14 @@
-import System.IO
-
-getCh :: IO Char
-getCh = hSetEcho stdin False >>= \_ -> getChar >>= \c -> hSetEcho stdin True >>= \_ -> return c
+-- https://gist.github.com/yamamotoj/51a56d01770bd537b2c6 さんのコードそのまま
 
 readLine :: IO String
-readLine = undefined
-
---delete :: String -> IO ()
---delete "" = undefined
-
--- '\DEL'
--- "\ESC[1D"
+readLine = read []
+     where read xs =
+             do c <- getChar
+                case c of
+                  '\n'   -> return $reverse xs
+                  '\DEL' -> case xs of
+                    [] -> do putStr "\ESC[2D\ESC[K"
+                             read xs
+                    (y:ys) -> do putStr "\ESC[3D\ESC[K"
+                                 read ys
+                  _ -> do read (c:xs)

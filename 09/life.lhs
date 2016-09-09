@@ -74,7 +74,7 @@ Game of life
 > life                          :: Board -> IO ()
 > life b                        =  do cls
 >                                     showcells b
->                                     wait 5000
+>                                     wait 1000000
 >                                     life (nextgen b)
 >
 > wait                          :: Int -> IO ()
